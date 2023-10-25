@@ -7,11 +7,14 @@ import '../interfaces/IPeripheryImmutableState.sol';
 /// @notice Immutable state used by periphery contracts
 abstract contract PeripheryImmutableState is IPeripheryImmutableState {
     /// @inheritdoc IPeripheryImmutableState
+    // factory合约地址
     address public immutable override factory;
     /// @inheritdoc IPeripheryImmutableState
+    // weth的地址
     address public immutable override WETH9;
 
     constructor(address _factory, address _WETH9) {
+        // 初始化将factory地址和weth地址写入immutable变量
         factory = _factory;
         WETH9 = _WETH9;
     }

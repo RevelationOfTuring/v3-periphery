@@ -5,6 +5,7 @@ import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import './PoolAddress.sol';
 
 /// @notice Provides validation for callbacks from Uniswap V3 Pools
+// 用于校验uniswap v3的pool的回调函数
 library CallbackValidation {
     /// @notice Returns the address of a valid Uniswap V3 Pool
     /// @param factory The contract address of the Uniswap V3 factory
@@ -12,6 +13,7 @@ library CallbackValidation {
     /// @param tokenB The contract address of the other token
     /// @param fee The fee collected upon every swap in the pool, denominated in hundredths of a bip
     /// @return pool The V3 pool contract address
+    // 通过传入的factory/tokenA/tokenB和fee，计算出对应pool的地址，并严格校验msg.sender必须是该pool。最后返回该pool地址
     function verifyCallback(
         address factory,
         address tokenA,
@@ -25,6 +27,7 @@ library CallbackValidation {
     /// @param factory The contract address of the Uniswap V3 factory
     /// @param poolKey The identifying key of the V3 pool
     /// @return pool The V3 pool contract address
+    // 通过传入的factory和PoolKey计算出对应pool的地址，并严格校验msg.sender必须是该pool。最后返回该pool地址
     function verifyCallback(address factory, PoolAddress.PoolKey memory poolKey)
         internal
         view
