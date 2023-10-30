@@ -22,9 +22,13 @@ abstract contract LiquidityManagement is IUniswapV3MintCallback, PeripheryImmuta
     }
 
     /// @inheritdoc IUniswapV3MintCallback
+    // pool在添加流动性时需要回调本合约的回调函数
     function uniswapV3MintCallback(
+        // 用于注入pool的token0的数量
         uint256 amount0Owed,
+        // 用于注入pool的token1的数量
         uint256 amount1Owed,
+        // 执行回调时的参数
         bytes calldata data
     ) external override {
         // 将bytes的calldata转换成结构体MintCallbackData

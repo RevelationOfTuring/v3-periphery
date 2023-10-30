@@ -53,23 +53,33 @@ library LiquidityAmounts {
     /// @param amount0 The amount of token0 being sent in
     /// @param amount1 The amount of token1 being sent in
     /// @return liquidity The maximum amount of liquidity received
+    // 用户期待的注入的token0和token1的数量、当前pool的价格、上下限价格区间，求可添加最大的流动性
     function getLiquidityForAmounts(
+        // pool的当前价格
         uint160 sqrtRatioX96,
+        // 流动性区间的下限价格
         uint160 sqrtRatioAX96,
+        // 流动性区间的下限价格
         uint160 sqrtRatioBX96,
+        // 输入token0数量
         uint256 amount0,
+        // 输入token1数量
         uint256 amount1
     ) internal pure returns (uint128 liquidity) {
+        // 当传入的间隔区间下限>上限，重新排序
         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
 
         if (sqrtRatioX96 <= sqrtRatioAX96) {
+            // 当前价格在流动性区间的左侧时：
             liquidity = getLiquidityForAmount0(sqrtRatioAX96, sqrtRatioBX96, amount0);
         } else if (sqrtRatioX96 < sqrtRatioBX96) {
+            // 当前价格在流动性区间内时：
             uint128 liquidity0 = getLiquidityForAmount0(sqrtRatioX96, sqrtRatioBX96, amount0);
             uint128 liquidity1 = getLiquidityForAmount1(sqrtRatioAX96, sqrtRatioX96, amount1);
-
+            // 对于token0和token1算出的不同流动性，取其中较小的值
             liquidity = liquidity0 < liquidity1 ? liquidity0 : liquidity1;
         } else {
+            // 当前价格在流动性区间右侧时：
             liquidity = getLiquidityForAmount1(sqrtRatioAX96, sqrtRatioBX96, amount1);
         }
     }

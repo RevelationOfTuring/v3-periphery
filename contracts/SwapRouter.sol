@@ -93,10 +93,15 @@ contract SwapRouter is
         // allow swapping to the router address with address 0
         if (recipient == address(0)) recipient = address(this);
 
+        // 从data中获取到当前pool的tokenIn，tokenOut和fee信息
         (address tokenIn, address tokenOut, uint24 fee) = data.path.decodeFirstPool();
 
+        // 此时的tokenIn的地址是否<tokenOut
+        // 即由于pool中只保存了token0的价格，这里明确知道tokenIn是交易池token0还是token1
         bool zeroForOne = tokenIn < tokenOut;
 
+        // getPool(tokenIn, tokenOut, fee)：将tokenIn和tokenOut重新排序计算出对应pool地址
+        // 并调用该pool的swap函数
         (int256 amount0, int256 amount1) =
             getPool(tokenIn, tokenOut, fee).swap(
                 recipient,
@@ -105,6 +110,7 @@ contract SwapRouter is
                 sqrtPriceLimitX96 == 0
                     ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
                     : sqrtPriceLimitX96,
+                // pool的swap()中的回调函数所使用的参数
                 abi.encode(data)
             );
 
@@ -136,32 +142,42 @@ contract SwapRouter is
         checkDeadline(params.deadline)
         returns (uint256 amountOut)
     {
+        // msg.sender为payer，如果是多个pools，那么msg.sender需要做第一次循环的payer
         address payer = msg.sender; // msg.sender pays for the first hop
 
         while (true) {
+            // path中是否包含>=2个pool
             bool hasMultiplePools = params.path.hasMultiplePools();
 
             // the outputs of prior swaps become the inputs to subsequent ones
+            // 完成当前path中第一个pool的交易
+            // 注：如果是多个pool，那么第一个pool swap出的token数量就是第二个pool swap输入的token数量
             params.amountIn = exactInputInternal(
                 params.amountIn,
                 hasMultiplePools ? address(this) : params.recipient, // for intermediate swaps, this contract custodies
                 0,
                 SwapCallbackData({
+                    // path中第一个pool的bytes，即tokenIn addr + fee + tokenOut addr
                     path: params.path.getFirstPool(), // only the first pool in the path is necessary
                     payer: payer
                 })
             );
 
             // decide whether to continue or terminate
+            // 判断循环是否终止
             if (hasMultiplePools) {
+                // 如果path还没遍历完，改变payer为SwapRouter地址
                 payer = address(this); // at this point, the caller has paid
+                // 更新path为剩余的pools的path信息
                 params.path = params.path.skipToken();
             } else {
+                // 如果path全部遍历完，则退出while
                 amountOut = params.amountIn;
                 break;
             }
         }
 
+        // 滑点检查，即真实换出token的数量必须>=用户的可接受的最小值
         require(amountOut >= params.amountOutMinimum, 'Too little received');
     }
 

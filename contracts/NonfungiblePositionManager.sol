@@ -33,21 +33,30 @@ contract NonfungiblePositionManager is
     // details about the uniswap position
     struct Position {
         // the nonce for permits
+        // ERC721Permit中使用到的nonce
         uint96 nonce;
         // the address that is approved for spending this token
+        // 该nft被授权给的地址
         address operator;
         // the ID of the pool with which this token is connected
+        // 该nft是对哪个poolId对应pool提供的流动性
         uint80 poolId;
         // the tick range of the position
+        // 提供流动性的价格下限的tick index
         int24 tickLower;
+        // 提供流动性的价格上限的tick index
         int24 tickUpper;
         // the liquidity of the position
+        // 该position中的流动性
         uint128 liquidity;
         // the fee growth of the aggregate position as of the last action on the individual position
+        // 手续费计算相关（忽略）
         uint256 feeGrowthInside0LastX128;
         uint256 feeGrowthInside1LastX128;
         // how many uncollected tokens are owed to the position, as of the last computation
+        // 截至最后一次计算，本position未被领走的fee（token0）的数量
         uint128 tokensOwed0;
+        // 截至最后一次计算，本position未被领走的fee（token1）的数量
         uint128 tokensOwed1;
     }
 
@@ -116,10 +125,14 @@ contract NonfungiblePositionManager is
     }
 
     /// @dev Caches a pool key
+    // 本合约缓存pool -> pool id -> pool key的映射关系
     function cachePoolKey(address pool, PoolAddress.PoolKey memory poolKey) private returns (uint80 poolId) {
+        // 先通过pool地址取pool id（如果存在，直接返回）
         poolId = _poolIds[pool];
         if (poolId == 0) {
+            // 如果pool id不存在，就缓存新的（pool id从1开始自增）
             _poolIds[pool] = (poolId = _nextPoolId++);
+            // 在通过pool id与pool key创建联系
             _poolIdToPoolKey[poolId] = poolKey;
         }
     }
@@ -131,13 +144,23 @@ contract NonfungiblePositionManager is
         override
         checkDeadline(params.deadline)
         returns (
+            // 表示创建出的position的nft的token id
             uint256 tokenId,
+            // 创建出的position中的流动性
             uint128 liquidity,
+            // 真正注入的token0数量
             uint256 amount0,
+            // 真正注入的token1数量
             uint256 amount1
         )
     {
         IUniswapV3Pool pool;
+        // 添加流动性，其中包括token0和token1的转移
+        // 返回值：
+        // - liquidity: 本次真实添加的流动性值
+        // - amount0: 真正注入的token0的数量
+        // - amount1: 真正注入的token1的数量
+        // - pool: 对应pool的地址
         (liquidity, amount0, amount1, pool) = addLiquidity(
             AddLiquidityParams({
                 token0: params.token0,
@@ -153,18 +176,25 @@ contract NonfungiblePositionManager is
             })
         );
 
+        // mint ERC721给recipient
+        // nft用来代表用户所持有的流动性
         _mint(params.recipient, (tokenId = _nextId++));
 
+        // 计算position key
         bytes32 positionKey = PositionKey.compute(address(this), params.tickLower, params.tickUpper);
+        // 用position key从对应pool中获取手续费相关信息（忽略）
         (, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128, , ) = pool.positions(positionKey);
 
         // idempotent set
+        // 在NonfungiblePositionManager中，缓存pool -> pool id -> pool key的映射关系。
+        // 如果已存在，直接返回poolId
         uint80 poolId =
             cachePoolKey(
                 address(pool),
                 PoolAddress.PoolKey({token0: params.token0, token1: params.token1, fee: params.fee})
             );
 
+        // 用ERC721的token id作key，value是将LP提供流动性的信息
         _positions[tokenId] = Position({
             nonce: 0,
             operator: address(0),
@@ -195,6 +225,7 @@ contract NonfungiblePositionManager is
     function baseURI() public pure override returns (string memory) {}
 
     /// @inheritdoc INonfungiblePositionManager
+    // 用户为pool增添流动性直接交互的函数
     function increaseLiquidity(IncreaseLiquidityParams calldata params)
         external
         payable

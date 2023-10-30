@@ -77,16 +77,27 @@ interface INonfungiblePositionManager is
         );
 
     struct MintParams {
+        // token0地址
         address token0;
+        // token1地址
         address token1;
+        // 手续费等级
         uint24 fee;
+        // 提供流动性区间的价格下限对应的tick index
         int24 tickLower;
+        // 提供流动性区间的价格上限对应的tick index
         int24 tickUpper;
+        // user期待的注入token0的数量
         uint256 amount0Desired;
+        // user期待的注入token1的数量
         uint256 amount1Desired;
+        // user实际能容忍注入token0的最小数量
         uint256 amount0Min;
+        // user实际能容忍注入token1的最小数量
         uint256 amount1Min;
+        // LP nft的接受者
         address recipient;
+        // 交易有效期的deadline
         uint256 deadline;
     }
 
@@ -109,11 +120,17 @@ interface INonfungiblePositionManager is
         );
 
     struct IncreaseLiquidityParams {
+        // 要在哪个LP token上增添流动性
         uint256 tokenId;
+        // 用户期望的token0的花费数量
         uint256 amount0Desired;
+        // 用户期望的token1的花费数量
         uint256 amount1Desired;
+        // 容忍token0花费的最小数量，用作滑点检查
         uint256 amount0Min;
+        // 容忍token1花费的最小数量，用作滑点检查
         uint256 amount1Min;
+        // 该交易有效期的deadline
         uint256 deadline;
     }
 
